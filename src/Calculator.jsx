@@ -1,19 +1,40 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 export default function Calculator({ darkMode }) {
   const [input, setInput] = useState("");
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("calc-history");
+    if (stored) setHistory(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("calc-history", JSON.stringify(history));
+  }, [history]);
 
   const handleClick = (value) => setInput((prev) => prev + value);
   const handleClear = () => setInput("");
   const handleBackspace = () => setInput((prev) => prev.slice(0, -1));
+
   const handleEqual = () => {
     try {
-      setInput(eval(input).toString());
+      const result = eval(input).toString();
+      const timestamp = new Date().toLocaleString("pt-BR");
+      const newEntry = {
+        expression: input,
+        result,
+        time: timestamp,
+      };
+      setHistory((prev) => [newEntry, ...prev.slice(0, 9)]);
+      setInput(result);
     } catch {
       setInput("Erro");
     }
   };
+
+  const handleClearHistory = () => setHistory([]);
 
   const buttons = [
     "7",
@@ -35,10 +56,10 @@ export default function Calculator({ darkMode }) {
   ];
 
   const getButtonClass = (btn) => {
-    if (btn === "=") {
-      return "bg-green-500 text-white";
-    }
-    return darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200";
+    if (btn === "=") return "bg-green-500 text-white";
+    return darkMode
+      ? "bg-gray-700 hover:bg-gray-600"
+      : "bg-gray-100 hover:bg-gray-200";
   };
 
   return (
@@ -58,8 +79,6 @@ export default function Calculator({ darkMode }) {
           disabled
         />
       </div>
-
-      {/* Grade dos botões principais */}
       <div className="grid grid-cols-4 gap-3">
         {buttons.map((btn, index) => (
           <motion.button
@@ -71,22 +90,17 @@ export default function Calculator({ darkMode }) {
             )}`}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.05 * index }}
+            transition={{ delay: 0.03 * index }}
           >
             {btn}
           </motion.button>
         ))}
       </div>
-
-      {/* Linha dos botões apagar e limpar */}
       <div className="flex gap-3 mt-4">
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handleBackspace}
-          className={`flex-1 max-w-[30%] bg-red-500 text-white p-3 rounded text-lg shadow transition-colors duration-300 hover:bg-red-600`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          className={`flex-1 max-w-[30%] bg-red-500 text-white p-3 rounded text-lg shadow hover:bg-red-600`}
         >
           ⌫ Apagar
         </motion.button>
@@ -94,14 +108,34 @@ export default function Calculator({ darkMode }) {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handleClear}
-          className={`flex-1 max-w-[65%] bg-red-700 text-white p-3 rounded text-lg shadow transition-colors duration-300 hover:bg-red-800`}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.85 }}
+          className={`flex-1 max-w-[65%] bg-red-700 text-white p-3 rounded text-lg shadow hover:bg-red-800`}
         >
           Limpar
         </motion.button>
       </div>
+      {history.length > 0 && (
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-lg font-semibold">Histórico</h2>
+            <button
+              onClick={handleClearHistory}
+              className="text-sm text-red-500 hover:underline"
+            >
+              Limpar histórico
+            </button>
+          </div>
+          <ul className="text-sm max-h-40 overflow-y-auto space-y-1">
+            {history.map((item, index) => (
+              <li key={index} className="border-b pb-1 last:border-none">
+                <div>
+                  {item.expression} = <strong>{item.result}</strong>
+                </div>
+                <div className="text-xs text-gray-400">{item.time}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </motion.div>
   );
 }
